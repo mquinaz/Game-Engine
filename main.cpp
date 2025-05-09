@@ -1,26 +1,16 @@
 #include "glad.h"
 #include <GLFW/glfw3.h>
 
-#include <iostream>
+#include "Shader.hpp" 
 
+#include <iostream>
+#include <cmath>
+ 
 //code --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-const char *vertexShaderSource = "#version 460 core\n"
-"layout (location = 0) in vec3 aPos;\n"
-"void main()\n"
-"{\n"
-"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-"}\0";
-
-const char *fragmentShaderSource = "#version 460 core\n"
-"out vec4 FragColor;\n"
-"void main()\n"
-"{\n"
-"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-"}\0";
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -57,46 +47,7 @@ int main(void)
         return -1;
     }    
 
-    // build and compile our shader program
-    // vertex shader
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    int  success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if(!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-
-    // fragment shader
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if(!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-
-    // link shaders
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    Shader ourShader("/home/quinaz/Desktop/Programming/opengl/src/shader/vshader", "/home/quinaz/Desktop/Programming/opengl/src/shader/fshader");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     /*float vertices[] = {
@@ -110,7 +61,11 @@ int main(void)
        1, 2, 3    // second triangle
    };  
    rectangle 
-   */
+    */
+
+   int nrAttributes;
+   glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
+   std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
     float vertices[36*3];
     int ind = 0;
@@ -132,7 +87,7 @@ int main(void)
        18,19,24,  24,25,19,  20,26,27,  27,20,21,
        24,25,30,  30,31,25,  26,32,33,  26,27,33,  27,33,34,  27,28,34,  28,34,35,  28,29,35
    };  
-
+   
     unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);  
@@ -169,10 +124,13 @@ int main(void)
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        ourShader.use();
 
+        float timeValue = glfwGetTime();
+        float greenValue = (std::sin(timeValue) / 2.0f) + 0.5f;
+        ourShader.setFloat("ourColor", greenValue);
 
         // draw our first triangle
-        glUseProgram(shaderProgram);
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glDrawElements(GL_TRIANGLES, 34*3, GL_UNSIGNED_INT, 0);
@@ -185,7 +143,6 @@ int main(void)
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    glDeleteProgram(shaderProgram);
 
     glfwTerminate();
 
